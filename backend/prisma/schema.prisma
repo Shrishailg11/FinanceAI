@@ -1,0 +1,118 @@
+// Streamlined Prisma Schema - Balanced approach for learning and functionality
+// Core features + Cities (with potential for expansion)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  salary          Decimal?
+  primaryCurrency String?    @default("USD")
+  cityId          String?
+  city            City?      @relation(fields: [cityId], references: [id])
+  
+  // Core relationships
+  expenses        Expense[]
+  budgets         Budget[]
+  categories      Category[]
+  recurringPayments RecurringPayment[]
+  
+  @@map("users")
+}
+
+model City {
+  id                String    @id @default(uuid())
+  name              String
+  country           String
+  // Essential fields for basic functionality
+  // Can be enriched later with cron jobs
+  costOfLivingIndex Decimal?  // Updated monthly
+  latitude          Decimal?
+  longitude         Decimal?
+  
+  // Relationship
+  users             User[]
+  
+  @@map("cities")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  icon      String?
+  color     String?   @default("#000000")
+  isDefault Boolean   @default(false)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  
+  // Relationships
+  expenses  Expense[]
+  budgets   Budget[]
+  
+  @@map("categories")
+}
+
+model Budget {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
+  amountLimit  Decimal
+  month        DateTime // YYYY-MM-01 format
+  isStrictMode Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  
+  @@map("budgets")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  amount      Decimal
+  currency    String?  @default("USD")
+  description String?
+  date        DateTime
+  // Location data (can leverage City relationship)
+  locationName String?
+  latitude    Decimal?
+  longitude   Decimal?
+  // Future enhancement placeholder
+  receiptImage String?
+  isRecurring Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@map("expenses")
+}
+
+model RecurringPayment {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+  amount          Decimal
+  frequency       String   // daily, weekly, monthly, yearly
+  startDate       DateTime
+  endDate         DateTime?
+  description     String?
+  nextPaymentDate DateTime
+  isActive        Boolean  @default(true)
+  
+  @@map("recurring_payments")
+}
